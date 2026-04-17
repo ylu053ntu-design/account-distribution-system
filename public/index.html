@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Account Application / 测试账户申请</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1e88e5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #1565c0;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 13px;
+        }
+
+        .form-container {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+            margin-left: 4px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 0;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1e88e5;
+        }
+
+        .form-group input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .code-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .code-group input {
+            flex: 1;
+        }
+
+        .code-group button {
+            padding: 12px 20px;
+            background: #1e88e5;
+            color: white;
+            border: none;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+
+        .code-group button:hover:not(:disabled) {
+            background: #1565c0;
+        }
+
+        .code-group button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 0;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: #0d47a1;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 0;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.success {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .result-container {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .result-container.show {
+            display: block;
+        }
+
+        .result-icon {
+            width: 80px;
+            height: 80px;
+            background: #1565c0;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+            color: white;
+        }
+
+        .result-title {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .result-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .account-info {
+            background: #e3f2fd;
+            border-radius: 0;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .account-info .label {
+            font-size: 12px;
+            color: #1565c0;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .account-info .value {
+            font-size: 18px;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .account-info .divider {
+            height: 1px;
+            background: #90caf9;
+            margin: 15px 0;
+        }
+
+        .copy-btn {
+            background: #1e88e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #1565c0;
+        }
+
+        .start-btn {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 15px;
+            display: inline-block;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .start-btn:hover {
+            background: #1b5e20;
+        }
+
+        .warning {
+            background: #fff8e1;
+            border: 1px solid #ffb74d;
+            color: #e65100;
+            padding: 12px;
+            border-radius: 0;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        .info-box {
+            background: #e8f5e9;
+            border: 1px solid #81c784;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 0;
+            font-size: 13px;
+            margin-top: 20px;
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-box ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            margin: 4px 0;
+        }
+
+        .countdown {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .save-hint {
+            color: #e65100;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .logo {
+            height: 40px;
+            margin-bottom: 15px;
+        }
+
+        .contact-info {
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+            padding: 15px 30px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .contact-info a {
+            color: #1565c0;
+            text-decoration: none;
+        }
+
+        .contact-info a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="baidu-logo.png" alt="Baidu AI Cloud" class="logo">
+            <h1>Test Account Application / 测试账户申请</h1>
+            <p>Please fill in the following information to get a test account<br>请填写以下信息获取测试账户</p>
+        </div>
+
+        <div class="form-container" id="formContainer">
+            <div class="message" id="message"></div>
+
+            <form id="claimForm">
+                <div class="form-group">
+                    <label>Name / 姓名<span class="required">*</span></label>
+                    <input type="text" id="name" name="name" required placeholder="Please enter your name / 请输入您的姓名">
+                </div>
+
+                <div class="form-group">
+                    <label>Company / 所属单位<span class="required">*</span></label>
+                    <input type="text" id="company" name="company" required placeholder="Please enter your company name / 请输入您的公司/单位名称">
+                </div>
+
+                <div class="form-group">
+                    <label>WhatsApp<span class="required">*</span></label>
+                    <input type="text" id="whatsapp" name="whatsapp" required placeholder="Please enter your WhatsApp number / 请输入您的WhatsApp号码">
+                </div>
+
+                <div class="form-group">
+                    <label>Company Email / 公司邮箱<span class="required">*</span></label>
+                    <input type="email" id="email" name="email" required placeholder="Please enter your company email / 请输入您的公司邮箱">
+                </div>
+
+                <div class="form-group">
+                    <label>Email Verification Code / 邮箱验证码<span class="required">*</span></label>
+                    <div class="code-group">
+                        <input type="text" id="code" name="code" required placeholder="Please enter the email verification code / 请输入邮箱验证码" maxlength="6">
+                        <button type="button" id="sendCodeBtn">Send Code / 发送验证码</button>
+                    </div>
+                    <div class="countdown" id="countdown"></div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">Submit / 提交申请</button>
+            </form>
+
+            <div class="contact-info">
+                📞 If you have any questions, please contact / 如有疑问请联系：<br>
+                WhatsApp: <a href="https://wa.me/8615757133133" target="_blank">+86 157 5713 3133</a> | 
+                Email: <a href="mailto:luyiyi@baidu.com">luyiyi@baidu.com</a>
+            </div>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-icon">✓</div>
+            <h2 class="result-title">Application Successful! / 申请成功！</h2>
+            <p class="result-subtitle">Your test account information is below<br>您的测试账户信息如下</p>
+
+            <div class="account-info">
+                <div class="label">Username / 账户名</div>
+                <div class="value" id="resultUsername">-</div>
+                
+                <div class="divider"></div>
+                
+                <div class="label">Password / 密码</div>
+                <div class="value" id="resultPassword">-</div>
+            </div>
+
+            <p class="save-hint">👆 Click to save your account and password / 点击保存账号和密码</p>
+
+            <button class="copy-btn" onclick="copyAccount()">Copy Account Info / 复制账户信息</button>
+
+            <div class="warning">
+                <strong>Important / 重要提示：</strong>Please save your account information. You will not be able to view it again after closing this page.<br>请妥善保存您的账户信息，此页面关闭后将无法再次查看。
+            </div>
+
+            <div class="info-box">
+                <strong>Next Steps / 下一步：</strong>
+                Enter VOD console to start testing products / 进入VOD控制台开始测试产品：
+                <br><br>
+                <strong>🎬 Video Editing Models / 视频编辑模型：</strong>
+                <ul>
+                    <li>Gemini</li>
+                    <li>Veo</li>
+                    <li>Banana</li>
+                    <li>Vidu</li>
+                    <li>Keling</li>
+                    <li>Pixverse</li>
+                    <li>Minimax</li>
+                </ul>
+                <strong>Discount: 20-50% off / 折扣：5-8折</strong>
+                <br><br>
+                <strong>🎤 Real-time Voice Interaction / 实时语音交互：</strong>
+                <ul>
+                    <li>Multimodal Interaction / 多模态互动</li>
+                    <li>Real-time Communication / 实时交流</li>
+                </ul>
+            </div>
+
+            <a href="https://cloud.baidu.com/product/vod.html" target="_blank" class="start-btn">
+                Start Testing / 开始测试 →
+            </a>
+
+            <div class="contact-info">
+                📞 If you have any questions, please contact / 如有疑问请联系：<br>
+                WhatsApp: <a href="https://wa.me/8615757133133" target="_blank">+86 157 5713 3133</a> | 
+                Email: <a href="mailto:luyiyi@baidu.com">luyiyi@baidu.com</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+        
+        let countdownTimer = null;
+        let accountData = null;
+
+        // 显示消息
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type} show`;
+            
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, 5000);
+        }
+
+        // 发送验证码
+        document.getElementById('sendCodeBtn').addEventListener('click', async function() {
+            const email = document.getElementById('email').value;
+            
+            if (!email) {
+                showMessage('Please enter your email first / 请先输入邮箱地址', 'error');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                showMessage('Please enter a valid email address / 请输入有效的邮箱地址', 'error');
+                return;
+            }
+
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Sending... / 发送中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/send-code`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('Verification code sent to your email / 验证码已发送到您的邮箱', 'success');
+                    startCountdown(60);
+                } else {
+                    showMessage(data.message || 'Send failed / 发送失败', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Send Code / 发送验证码';
+                }
+            } catch (error) {
+                showMessage('Network error, please try again / 网络错误，请稍后重试', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Send Code / 发送验证码';
+            }
+        });
+
+        // 倒计时
+        function startCountdown(seconds) {
+            const btn = document.getElementById('sendCodeBtn');
+            const countdownEl = document.getElementById('countdown');
+            
+            let remaining = seconds;
+            btn.disabled = true;
+            btn.textContent = `${remaining}s`;
+
+            countdownTimer = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(countdownTimer);
+                    btn.disabled = false;
+                    btn.textContent = 'Send Code / 发送验证码';
+                    countdownEl.textContent = '';
+                } else {
+                    btn.textContent = `${remaining}s`;
+                }
+            }, 1000);
+        }
+
+        // 提交表单
+        document.getElementById('claimForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('name').value,
+                company: document.getElementById('company').value,
+                whatsapp: document.getElementById('whatsapp').value,
+                email: document.getElementById('email').value,
+                code: document.getElementById('code').value
+            };
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting... / 提交中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/claim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    accountData = data.data;
+                    showResult(data.data);
+                } else {
+                    showMessage(data.message || 'Submission failed / 提交失败', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit / 提交申请';
+                }
+            } catch (error) {
+                showMessage('Network error, please try again / 网络错误，请稍后重试', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit / 提交申请';
+            }
+        });
+
+        // 显示结果
+        function showResult(data) {
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('resultContainer').classList.add('show');
+            document.getElementById('resultUsername').textContent = data.username;
+            document.getElementById('resultPassword').textContent = data.password;
+        }
+
+        // 复制账户信息
+        function copyAccount() {
+            if (!accountData) return;
+            
+            const text = `Username: ${accountData.username}\nPassword: ${accountData.password}`;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied! / 已复制！';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
