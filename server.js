@@ -390,13 +390,13 @@ app.delete('/api/admin/clear-claims', async (req, res) => {
     // 删除所有领取记录
     await pool.query('DELETE FROM claims');
     
-    // 重置所有账户的分配状态
-    await pool.query('UPDATE accounts SET is_assigned = 0, assigned_to = NULL, assigned_at = NULL');
+    // 删除所有账户
+    await pool.query('DELETE FROM accounts');
     
     // 删除所有验证码
     await pool.query('DELETE FROM verification_codes');
 
-    res.json({ success: true, message: 'All claims cleared and accounts reset / 所有领取记录已清空，账户已重置' });
+    res.json({ success: true, message: 'All data cleared / 所有数据已清空' });
   } catch (error) {
     console.error('Clear claims error:', error);
     res.status(500).json({ success: false, message: 'Failed to clear claims / 清空失败' });
