@@ -62,6 +62,24 @@ async function initDatabase() {
       )
     `);
 
+    // 检查并添加缺失的列（数据库迁移）
+    const columnsToAdd = [
+      { table: 'accounts', column: 'vod_ticket', type: 'TEXT' },
+      { table: 'accounts', column: 'rtc_ticket', type: 'TEXT' }
+    ];
+
+    for (const col of columnsToAdd) {
+      const checkResult = await client.query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = $1 AND column_name = $2
+      `, [col.table, col.column]);
+      
+      if (checkResult.rows.length === 0) {
+        await client.query(`ALTER TABLE ${col.table} ADD COLUMN ${col.column} ${col.type}`);
+        console.log(`添加列: ${col.table}.${col.column}`);
+      }
+    }
+
     console.log('数据库表初始化完成');
   } finally {
     client.release();
