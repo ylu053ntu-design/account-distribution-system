@@ -200,6 +200,21 @@
             background: #c0392b;
         }
 
+        .export-btn {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .export-btn:hover {
+            background: #1b5e20;
+        }
+
         .action-bar {
             background: white;
             padding: 20px;
@@ -218,6 +233,12 @@
             font-size: 16px;
         }
 
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .hidden {
             display: none;
         }
@@ -227,6 +248,7 @@
             margin-bottom: 10px;
         }
     </style>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -269,7 +291,10 @@
 
             <div class="action-bar">
                 <h3>Operations / 操作</h3>
-                <button class="danger-btn" onclick="clearAllData()">Clear All Data / 清空所有数据</button>
+                <div class="action-buttons">
+                    <button class="export-btn" onclick="exportData()">Export All Data / 导出所有数据</button>
+                    <button class="danger-btn" onclick="clearAllData()">Clear All Data / 清空所有数据</button>
+                </div>
             </div>
 
             <div class="table-container">
@@ -423,6 +448,67 @@
                 }
             } catch (error) {
                 alert('Failed to clear data. Please check network.\n清空数据失败，请检查网络。');
+            }
+        }
+
+        // Export All Data / 导出所有数据
+        async function exportData() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/export`, {
+                    headers: { 'x-admin-password': adminPassword }
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    alert('Failed to export data / 导出失败');
+                    return;
+                }
+
+                const { accounts, claims, exportedAt } = result.data;
+
+                // 创建工作簿
+                const wb = XLSX.utils.book_new();
+
+                // Sheet 1: 账户列表
+                const accountsData = accounts.map(acc => ({
+                    'Account ID / 账户ID': acc.username,
+                    'Password / 密码': acc.password,
+                    'VOD Voucher / VOD代金券': acc.vod_ticket || '-',
+                    'RTC Voucher / RTC代金券': acc.rtc_ticket || '-',
+                    'Assigned / 已分配': acc.is_assigned ? 'Yes / 是' : 'No / 否',
+                    'Assigned To / 分配给': acc.assigned_to || '-',
+                    'Assigned At / 分配时间': acc.assigned_at ? new Date(acc.assigned_at).toLocaleString('zh-CN') : '-'
+                }));
+                const ws1 = XLSX.utils.json_to_sheet(accountsData);
+                XLSX.utils.book_append_sheet(wb, ws1, 'Accounts / 账户');
+
+                // Sheet 2: 领取记录
+                const claimsData = claims.map(c => ({
+                    'Name / 姓名': c.name,
+                    'Company / 公司': c.company,
+                    'WhatsApp': c.whatsapp,
+                    'Email / 邮箱': c.email,
+                    'Account ID / 账户ID': c.username || '-',
+                    'Password / 密码': c.password || '-',
+                    'VOD Voucher / VOD代金券': c.vod_ticket || '-',
+                    'RTC Voucher / RTC代金券': c.rtc_ticket || '-',
+                    'Claim Time / 领取时间': new Date(c.claimed_at).toLocaleString('zh-CN')
+                }));
+                const ws2 = XLSX.utils.json_to_sheet(claimsData);
+                XLSX.utils.book_append_sheet(wb, ws2, 'Claims / 领取记录');
+
+                // 生成文件名
+                const dateStr = new Date().toISOString().slice(0, 10);
+                const fileName = `account_data_${dateStr}.xlsx`;
+
+                // 下载文件
+                XLSX.writeFile(wb, fileName);
+
+                alert(`Exported ${accounts.length} accounts and ${claims.length} claims.\n导出 ${accounts.length} 个账户和 ${claims.length} 条领取记录。`);
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Failed to export data. Please check network.\n导出失败，请检查网络。');
             }
         }
 

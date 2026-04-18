@@ -403,6 +403,40 @@ app.delete('/api/admin/clear-claims', async (req, res) => {
   }
 });
 
+// API: 导出所有数据（管理员用）
+app.get('/api/admin/export', async (req, res) => {
+  const password = req.headers['x-admin-password'];
+  
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ success: false, message: 'Unauthorized / 无权访问' });
+  }
+
+  try {
+    // 获取所有账户
+    const accountsResult = await pool.query('SELECT * FROM accounts ORDER BY id');
+    
+    // 获取所有领取记录
+    const claimsResult = await pool.query(`
+      SELECT c.*, a.username, a.password, a.vod_ticket, a.rtc_ticket 
+      FROM claims c 
+      LEFT JOIN accounts a ON c.account_id = a.id 
+      ORDER BY c.claimed_at DESC
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        accounts: accountsResult.rows,
+        claims: claimsResult.rows,
+        exportedAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ success: false, message: 'Failed to export data / 导出失败' });
+  }
+});
+
 // 健康检查
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
