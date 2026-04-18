@@ -360,6 +360,31 @@ app.post('/api/admin/accounts', async (req, res) => {
   }
 });
 
+// API: 清空领取记录并重置账户状态（管理员用）
+app.delete('/api/admin/clear-claims', async (req, res) => {
+  const password = req.headers['x-admin-password'];
+  
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ success: false, message: 'Unauthorized / 无权访问' });
+  }
+
+  try {
+    // 删除所有领取记录
+    await pool.query('DELETE FROM claims');
+    
+    // 重置所有账户的分配状态
+    await pool.query('UPDATE accounts SET is_assigned = 0, assigned_to = NULL, assigned_at = NULL');
+    
+    // 删除所有验证码
+    await pool.query('DELETE FROM verification_codes');
+
+    res.json({ success: true, message: 'All claims cleared and accounts reset / 所有领取记录已清空，账户已重置' });
+  } catch (error) {
+    console.error('Clear claims error:', error);
+    res.status(500).json({ success: false, message: 'Failed to clear claims / 清空失败' });
+  }
+});
+
 // 健康检查
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

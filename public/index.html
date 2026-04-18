@@ -334,6 +334,27 @@
         .contact-info a:hover {
             text-decoration: underline;
         }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .step-dot {
+            width: 10px;
+            height: 10px;
+            background: #e0e0e0;
+        }
+
+        .step-dot.active {
+            background: #1565c0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -347,10 +368,41 @@
         <div class="form-container" id="formContainer">
             <div class="message" id="message"></div>
 
-            <form id="claimForm">
+            <!-- Step 1: Name and Email -->
+            <form id="step1Form">
+                <div class="step-indicator">
+                    <div class="step-dot active" id="step1Dot"></div>
+                    <div class="step-dot" id="step2Dot"></div>
+                </div>
+                
                 <div class="form-group">
                     <label>Name / 姓名<span class="required">*</span></label>
                     <input type="text" id="name" name="name" required placeholder="Please enter your name / 请输入您的姓名">
+                </div>
+
+                <div class="form-group">
+                    <label>Company Email / 公司邮箱<span class="required">*</span></label>
+                    <input type="email" id="email" name="email" required placeholder="Please enter your company email / 请输入您的公司邮箱">
+                </div>
+
+                <button type="submit" class="submit-btn" id="nextBtn">Next / 下一步</button>
+            </form>
+
+            <!-- Step 2: Full Form (hidden initially) -->
+            <form id="step2Form" class="hidden">
+                <div class="step-indicator">
+                    <div class="step-dot" id="step1Dot2"></div>
+                    <div class="step-dot active" id="step2Dot2"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Name / 姓名</label>
+                    <input type="text" id="name2" name="name" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label>Company Email / 公司邮箱</label>
+                    <input type="email" id="email2" name="email" disabled>
                 </div>
 
                 <div class="form-group">
@@ -361,11 +413,6 @@
                 <div class="form-group">
                     <label>WhatsApp<span class="required">*</span></label>
                     <input type="text" id="whatsapp" name="whatsapp" required placeholder="Please enter your WhatsApp number / 请输入您的WhatsApp号码">
-                </div>
-
-                <div class="form-group">
-                    <label>Company Email / 公司邮箱<span class="required">*</span></label>
-                    <input type="email" id="email" name="email" required placeholder="Please enter your company email / 请输入您的公司邮箱">
                 </div>
 
                 <div class="form-group">
@@ -389,8 +436,8 @@
 
         <div class="result-container" id="resultContainer">
             <div class="result-icon">✓</div>
-            <h2 class="result-title">Application Successful! / 申请成功！</h2>
-            <p class="result-subtitle">Your test account information is below<br>您的测试账户信息如下</p>
+            <h2 class="result-title" id="resultTitle">Application Successful! / 申请成功！</h2>
+            <p class="result-subtitle" id="resultSubtitle">Your test account information is below<br>您的测试账户信息如下</p>
 
             <div class="account-info">
                 <div class="label">Account ID / 账户ID</div>
@@ -475,24 +522,31 @@
         
         let countdownTimer = null;
         let accountData = null;
+        let currentName = '';
+        let currentEmail = '';
 
         // 显示消息
         function showMessage(text, type) {
             const messageEl = document.getElementById('message');
             messageEl.textContent = text;
             messageEl.className = `message ${type} show`;
-            
-            setTimeout(() => {
-                messageEl.classList.remove('show');
-            }, 5000);
         }
 
-        // 发送验证码
-        document.getElementById('sendCodeBtn').addEventListener('click', async function() {
-            const email = document.getElementById('email').value;
-            
-            if (!email) {
-                showMessage('Please enter your email first / 请先输入邮箱地址', 'error');
+        // 隐藏消息
+        function hideMessage() {
+            const messageEl = document.getElementById('message');
+            messageEl.classList.remove('show');
+        }
+
+        // Step 1: 检查是否已领取
+        document.getElementById('step1Form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+
+            if (!name || !email) {
+                showMessage('Please fill in all fields / 请填写所有字段', 'error');
                 return;
             }
 
@@ -500,6 +554,51 @@
                 showMessage('Please enter a valid email address / 请输入有效的邮箱地址', 'error');
                 return;
             }
+
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.disabled = true;
+            nextBtn.textContent = 'Checking... / 检查中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/check-claim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.alreadyClaimed) {
+                    // 已领取过，直接显示账户信息
+                    accountData = data.data;
+                    currentName = name;
+                    currentEmail = email;
+                    showResult(data.data, true);
+                } else {
+                    // 未领取过，进入第二步
+                    currentName = name;
+                    currentEmail = email;
+                    showStep2();
+                }
+            } catch (error) {
+                showMessage('Network error, please try again / 网络错误，请稍后重试', 'error');
+                nextBtn.disabled = false;
+                nextBtn.textContent = 'Next / 下一步';
+            }
+        });
+
+        // 显示第二步表单
+        function showStep2() {
+            hideMessage();
+            document.getElementById('step1Form').classList.add('hidden');
+            document.getElementById('step2Form').classList.remove('hidden');
+            document.getElementById('name2').value = currentName;
+            document.getElementById('email2').value = currentEmail;
+        }
+
+        // 发送验证码
+        document.getElementById('sendCodeBtn').addEventListener('click', async function() {
+            const email = currentEmail;
 
             const btn = this;
             btn.disabled = true;
@@ -509,7 +608,7 @@
                 const response = await fetch(`${API_BASE}/send-code`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({ email, name: currentName })
                 });
 
                 const data = await response.json();
@@ -551,15 +650,15 @@
             }, 1000);
         }
 
-        // 提交表单
-        document.getElementById('claimForm').addEventListener('submit', async function(e) {
+        // Step 2: 提交表单
+        document.getElementById('step2Form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const formData = {
-                name: document.getElementById('name').value,
+                name: currentName,
                 company: document.getElementById('company').value,
                 whatsapp: document.getElementById('whatsapp').value,
-                email: document.getElementById('email').value,
+                email: currentEmail,
                 code: document.getElementById('code').value
             };
 
@@ -578,7 +677,7 @@
 
                 if (data.success) {
                     accountData = data.data;
-                    showResult(data.data);
+                    showResult(data.data, false);
                 } else {
                     showMessage(data.message || 'Submission failed / 提交失败', 'error');
                     submitBtn.disabled = false;
@@ -592,13 +691,21 @@
         });
 
         // 显示结果
-        function showResult(data) {
+        function showResult(data, isReturning) {
             document.getElementById('formContainer').style.display = 'none';
             document.getElementById('resultContainer').classList.add('show');
             document.getElementById('resultUsername').textContent = data.username;
             document.getElementById('resultPassword').textContent = data.password;
             document.getElementById('resultVodTicket').textContent = data.vod_ticket || '-';
             document.getElementById('resultRtcTicket').textContent = data.rtc_ticket || '-';
+
+            if (isReturning) {
+                document.getElementById('resultTitle').textContent = 'Welcome Back! / 欢迎回来！';
+                document.getElementById('resultSubtitle').textContent = 'You have already claimed an account. Your info is below.\n您已经领取过账户，信息如下';
+            } else {
+                document.getElementById('resultTitle').textContent = 'Application Successful! / 申请成功！';
+                document.getElementById('resultSubtitle').textContent = 'Your test account information is below\n您的测试账户信息如下';
+            }
         }
 
         // 复制账户信息
@@ -615,41 +722,6 @@
                 }, 2000);
             });
         }
-
-        // 检查是否已领取（当姓名和邮箱都填写后）
-        async function checkExistingClaim() {
-            const name = document.getElementById('name').value.trim();
-            const email = document.getElementById('email').value.trim();
-            
-            if (!name || !email || !email.includes('@')) return;
-            
-            try {
-                const response = await fetch(`${API_BASE}/check-claim`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success && data.alreadyClaimed) {
-                    // 已领取过，显示已有账户信息
-                    accountData = data.data;
-                    showResult(data.data);
-                    
-                    // 更新提示文字
-                    document.querySelector('.result-title').textContent = 'Welcome Back! / 欢迎回来！';
-                    document.querySelector('.result-subtitle').textContent = 'You have already claimed an account. Your info is below.\n您已经领取过账户，信息如下';
-                }
-            } catch (error) {
-                // 静默失败，不影响用户操作
-                console.log('Check claim failed:', error);
-            }
-        }
-
-        // 监听邮箱输入框失去焦点事件
-        document.getElementById('email').addEventListener('blur', checkExistingClaim);
-        document.getElementById('name').addEventListener('blur', checkExistingClaim);
     </script>
 </body>
 </html>
