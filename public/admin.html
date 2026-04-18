@@ -248,7 +248,6 @@
             margin-bottom: 10px;
         }
     </style>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -465,45 +464,34 @@
                     return;
                 }
 
-                const { accounts, claims, exportedAt } = result.data;
+                const { accounts, claims } = result.data;
 
-                // 创建工作簿
-                const wb = XLSX.utils.book_new();
+                // 生成CSV内容 - 账户列表
+                let csvContent = '\uFEFF'; // BOM for Excel to recognize UTF-8
+                csvContent += 'Accounts / 账户列表\n';
+                csvContent += 'Account ID / 账户ID,Password / 密码,VOD Voucher / VOD代金券,RTC Voucher / RTC代金券,Assigned / 已分配,Assigned To / 分配给,Assigned At / 分配时间\n';
+                
+                accounts.forEach(acc => {
+                    csvContent += `${acc.username},${acc.password},${acc.vod_ticket || '-'},${acc.rtc_ticket || '-'},${acc.is_assigned ? 'Yes' : 'No'},${acc.assigned_to || '-'},${acc.assigned_at ? new Date(acc.assigned_at).toLocaleString('zh-CN') : '-'}\n`;
+                });
 
-                // Sheet 1: 账户列表
-                const accountsData = accounts.map(acc => ({
-                    'Account ID / 账户ID': acc.username,
-                    'Password / 密码': acc.password,
-                    'VOD Voucher / VOD代金券': acc.vod_ticket || '-',
-                    'RTC Voucher / RTC代金券': acc.rtc_ticket || '-',
-                    'Assigned / 已分配': acc.is_assigned ? 'Yes / 是' : 'No / 否',
-                    'Assigned To / 分配给': acc.assigned_to || '-',
-                    'Assigned At / 分配时间': acc.assigned_at ? new Date(acc.assigned_at).toLocaleString('zh-CN') : '-'
-                }));
-                const ws1 = XLSX.utils.json_to_sheet(accountsData);
-                XLSX.utils.book_append_sheet(wb, ws1, 'Accounts / 账户');
+                csvContent += '\n\nClaims / 领取记录\n';
+                csvContent += 'Name / 姓名,Company / 公司,WhatsApp,Email / 邮箱,Account ID / 账户ID,Password / 密码,VOD Voucher / VOD代金券,RTC Voucher / RTC代金券,Claim Time / 领取时间\n';
+                
+                claims.forEach(c => {
+                    csvContent += `${c.name},${c.company},${c.whatsapp},${c.email},${c.username || '-'},${c.password || '-'},${c.vod_ticket || '-'},${c.rtc_ticket || '-'},${new Date(c.claimed_at).toLocaleString('zh-CN')}\n`;
+                });
 
-                // Sheet 2: 领取记录
-                const claimsData = claims.map(c => ({
-                    'Name / 姓名': c.name,
-                    'Company / 公司': c.company,
-                    'WhatsApp': c.whatsapp,
-                    'Email / 邮箱': c.email,
-                    'Account ID / 账户ID': c.username || '-',
-                    'Password / 密码': c.password || '-',
-                    'VOD Voucher / VOD代金券': c.vod_ticket || '-',
-                    'RTC Voucher / RTC代金券': c.rtc_ticket || '-',
-                    'Claim Time / 领取时间': new Date(c.claimed_at).toLocaleString('zh-CN')
-                }));
-                const ws2 = XLSX.utils.json_to_sheet(claimsData);
-                XLSX.utils.book_append_sheet(wb, ws2, 'Claims / 领取记录');
-
-                // 生成文件名
+                // 下载CSV文件
                 const dateStr = new Date().toISOString().slice(0, 10);
-                const fileName = `account_data_${dateStr}.xlsx`;
-
-                // 下载文件
-                XLSX.writeFile(wb, fileName);
+                const fileName = `account_data_${dateStr}.csv`;
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                link.click();
+                URL.revokeObjectURL(link.href);
 
                 alert(`Exported ${accounts.length} accounts and ${claims.length} claims.\n导出 ${accounts.length} 个账户和 ${claims.length} 条领取记录。`);
             } catch (error) {
