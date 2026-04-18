@@ -438,6 +438,10 @@
             <div class="result-icon">✓</div>
             <h2 class="result-title" id="resultTitle">Application Successful! / 申请成功！</h2>
             <p class="result-subtitle" id="resultSubtitle">Your test account information is below<br>您的测试账户信息如下</p>
+            
+            <div class="congrats-box" id="congratsBox" style="background: #fff3e0; border: 2px solid #ff9800; padding: 15px; margin-bottom: 20px; text-align: center;">
+                <span style="font-size: 18px; color: #e65100; font-weight: 600;">🎉 恭喜你！你是第 <span id="claimNumber">-</span> 个收到百度云福利的开发者～ 🎉</span>
+            </div>
 
             <div class="account-info">
                 <div class="label">Account ID / 账户ID</div>
@@ -579,7 +583,7 @@
                     accountData = data.data;
                     currentName = name;
                     currentEmail = email;
-                    showResult(data.data, true);
+                    showResult(data.data, true, data.claimNumber);
                 } else {
                     // 未领取过，进入第二步
                     currentName = name;
@@ -683,7 +687,7 @@
 
                 if (data.success) {
                     accountData = data.data;
-                    showResult(data.data, false);
+                    showResult(data.data, false, data.claimNumber);
                 } else {
                     showMessage(data.message || 'Submission failed / 提交失败', 'error');
                     submitBtn.disabled = false;
@@ -697,13 +701,21 @@
         });
 
         // 显示结果
-        function showResult(data, isReturning) {
+        function showResult(data, isReturning, claimNumber) {
             document.getElementById('formContainer').style.display = 'none';
             document.getElementById('resultContainer').classList.add('show');
             document.getElementById('resultUsername').textContent = data.username;
             document.getElementById('resultPassword').textContent = data.password;
             document.getElementById('resultVodTicket').textContent = data.vod_ticket || '-';
             document.getElementById('resultRtcTicket').textContent = data.rtc_ticket || '-';
+            
+            // 显示领取序号
+            if (claimNumber) {
+                document.getElementById('claimNumber').textContent = claimNumber;
+                document.getElementById('congratsBox').style.display = 'block';
+            } else {
+                document.getElementById('congratsBox').style.display = 'none';
+            }
 
             if (isReturning) {
                 document.getElementById('resultTitle').textContent = 'Welcome Back! / 欢迎回来！';

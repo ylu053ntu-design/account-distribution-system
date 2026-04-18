@@ -144,9 +144,15 @@ app.post('/api/check-claim', async (req, res) => {
 
     if (result.rows.length > 0) {
       const claim = result.rows[0];
+      
+      // 获取领取序号
+      const countResult = await pool.query('SELECT COUNT(*) as count FROM claims WHERE id <= $1', [claim.id]);
+      const claimNumber = parseInt(countResult.rows[0].count);
+      
       res.json({
         success: true,
         alreadyClaimed: true,
+        claimNumber: claimNumber,
         data: {
           username: claim.username,
           password: claim.password,
@@ -273,9 +279,14 @@ app.post('/api/claim', async (req, res) => {
     // 记录领取信息
     await client.query('INSERT INTO claims (name, company, whatsapp, email, account_id) VALUES ($1, $2, $3, $4, $5)', [name, company, whatsapp, email, account.id]);
 
+    // 获取领取序号
+    const countResult = await client.query('SELECT COUNT(*) as count FROM claims');
+    const claimNumber = parseInt(countResult.rows[0].count);
+
     res.json({
       success: true,
       alreadyClaimed: false,
+      claimNumber: claimNumber,
       data: {
         username: account.username,
         password: account.password,
