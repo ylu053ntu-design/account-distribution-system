@@ -22,11 +22,14 @@ const pool = new Pool({
 async function initDatabase() {
   const client = await pool.connect();
   try {
+    // 账户表（包含代金券）
     await client.query(`
       CREATE TABLE IF NOT EXISTS accounts (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
+        vod_ticket TEXT,
+        rtc_ticket TEXT,
         is_assigned INTEGER DEFAULT 0,
         assigned_to TEXT,
         assigned_at TIMESTAMP,
@@ -34,6 +37,7 @@ async function initDatabase() {
       )
     `);
 
+    // 领取记录表
     await client.query(`
       CREATE TABLE IF NOT EXISTS claims (
         id SERIAL PRIMARY KEY,
@@ -46,6 +50,7 @@ async function initDatabase() {
       )
     `);
 
+    // 验证码表
     await client.query(`
       CREATE TABLE IF NOT EXISTS verification_codes (
         id SERIAL PRIMARY KEY,
@@ -83,13 +88,14 @@ async function sendVerificationEmail(email, code) {
   const mailOptions = {
     from: process.env.SMTP_USER,
     to: email,
-    subject: 'Your Verification Code - Test Account Application / 您的验证码 - 测试账户申请',
+    subject: 'Your Verification Code - Baidu AI Cloud Test Account / 您的验证码 - 百度智能云测试账户',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Verification Code / 验证码通知</h2>
+        <h2 style="color: #1565c0;">Verification Code / 验证码通知</h2>
         <p>Hello! / 您好！</p>
-        <p>Your verification code is / 您正在申请测试账户，验证码为：</p>
-        <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+        <p>Your verification code for Baidu AI Cloud Test Account is:</p>
+        <p>您正在申请百度智能云测试账户，验证码为：</p>
+        <div style="background: #e3f2fd; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; color: #1565c0;">
           ${code}
         </div>
         <p style="color: #666;">Valid for ${process.env.VERIFICATION_CODE_EXPIRE_MINUTES || 5} minutes / 验证码有效期为 ${process.env.VERIFICATION_CODE_EXPIRE_MINUTES || 5} 分钟</p>
@@ -101,19 +107,76 @@ async function sendVerificationEmail(email, code) {
   return transporter.sendMail(mailOptions);
 }
 
+// API: 检查用户是否已领取
+app.post('/api/check-claim', async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Name and email required / 需要姓名和邮箱' });
+    }
+
+    // 根据姓名+邮箱查询
+    const result = await pool.query(`
+      SELECT c.*, a.username, a.password, a.vod_ticket, a.rtc_ticket 
+      FROM claims c 
+      LEFT JOIN accounts a ON c.account_id = a.id 
+      WHERE c.email = $1 AND c.name = $2
+    `, [email, name]);
+
+    if (result.rows.length > 0) {
+      const claim = result.rows[0];
+      res.json({
+        success: true,
+        alreadyClaimed: true,
+        data: {
+          username: claim.username,
+          password: claim.password,
+          vod_ticket: claim.vod_ticket,
+          rtc_ticket: claim.rtc_ticket,
+          claimed_at: claim.claimed_at
+        }
+      });
+    } else {
+      res.json({
+        success: true,
+        alreadyClaimed: false
+      });
+    }
+  } catch (error) {
+    console.error('Check claim error:', error);
+    res.status(500).json({ success: false, message: 'Check failed / 检查失败' });
+  }
+});
+
 // API: 发送验证码
 app.post('/api/send-code', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, name } = req.body;
     
     if (!email || !email.includes('@')) {
       return res.status(400).json({ success: false, message: 'Please enter a valid email / 请输入有效的邮箱地址' });
     }
 
-    // 检查是否已经领取过
-    const existingClaim = await pool.query('SELECT * FROM claims WHERE email = $1', [email]);
-    if (existingClaim.rows.length > 0) {
-      return res.status(400).json({ success: false, message: 'This email has already claimed an account / 该邮箱已经领取过账户' });
+    // 检查是否已经领取过（如果有姓名，检查姓名+邮箱匹配）
+    if (name) {
+      const existingClaim = await pool.query('SELECT * FROM claims WHERE email = $1 AND name = $2', [email, name]);
+      if (existingClaim.rows.length > 0) {
+        return res.status(400).json({ 
+          success: false, 
+          alreadyClaimed: true,
+          message: 'This email has already claimed an account / 该邮箱已经领取过账户' 
+        });
+      }
+    } else {
+      const existingClaim = await pool.query('SELECT * FROM claims WHERE email = $1', [email]);
+      if (existingClaim.rows.length > 0) {
+        return res.status(400).json({ 
+          success: false, 
+          alreadyClaimed: true,
+          message: 'This email has already claimed an account / 该邮箱已经领取过账户' 
+        });
+      }
     }
 
     // 生成验证码
@@ -145,9 +208,20 @@ app.post('/api/claim', async (req, res) => {
     }
 
     // 检查是否已经领取过
-    const existingClaim = await client.query('SELECT * FROM claims WHERE email = $1', [email]);
+    const existingClaim = await client.query('SELECT c.*, a.username, a.password, a.vod_ticket, a.rtc_ticket FROM claims c LEFT JOIN accounts a ON c.account_id = a.id WHERE c.email = $1 AND c.name = $2', [email, name]);
     if (existingClaim.rows.length > 0) {
-      return res.status(400).json({ success: false, message: 'This email has already claimed an account / 该邮箱已经领取过账户' });
+      // 已经领取过，返回已领取的信息
+      const claim = existingClaim.rows[0];
+      return res.json({
+        success: true,
+        alreadyClaimed: true,
+        data: {
+          username: claim.username,
+          password: claim.password,
+          vod_ticket: claim.vod_ticket,
+          rtc_ticket: claim.rtc_ticket
+        }
+      });
     }
 
     // 验证验证码
@@ -183,9 +257,12 @@ app.post('/api/claim', async (req, res) => {
 
     res.json({
       success: true,
+      alreadyClaimed: false,
       data: {
         username: account.username,
-        password: account.password
+        password: account.password,
+        vod_ticket: account.vod_ticket,
+        rtc_ticket: account.rtc_ticket
       }
     });
   } catch (error) {
@@ -234,7 +311,8 @@ app.get('/api/admin/claims', async (req, res) => {
 
   try {
     const result = await pool.query(`
-      SELECT c.id, c.name, c.company, c.whatsapp, c.email, c.claimed_at, a.username, a.password 
+      SELECT c.id, c.name, c.company, c.whatsapp, c.email, c.claimed_at, 
+             a.username, a.password, a.vod_ticket, a.rtc_ticket 
       FROM claims c 
       LEFT JOIN accounts a ON c.account_id = a.id 
       ORDER BY c.claimed_at DESC
@@ -265,7 +343,10 @@ app.post('/api/admin/accounts', async (req, res) => {
     let added = 0;
     for (const account of accounts) {
       try {
-        await pool.query('INSERT INTO accounts (username, password) VALUES ($1, $2)', [account.username, account.password]);
+        await pool.query(
+          'INSERT INTO accounts (username, password, vod_ticket, rtc_ticket) VALUES ($1, $2, $3, $4)',
+          [account.username, account.password, account.vod_ticket || null, account.rtc_ticket || null]
+        );
         added++;
       } catch (e) {
         // 忽略重复

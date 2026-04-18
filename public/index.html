@@ -393,49 +393,74 @@
             <p class="result-subtitle">Your test account information is below<br>您的测试账户信息如下</p>
 
             <div class="account-info">
-                <div class="label">Username / 账户名</div>
+                <div class="label">Account ID / 账户ID</div>
                 <div class="value" id="resultUsername">-</div>
                 
                 <div class="divider"></div>
                 
                 <div class="label">Password / 密码</div>
                 <div class="value" id="resultPassword">-</div>
+                
+                <div class="divider"></div>
+                
+                <div class="label">VOD Voucher (500 RMB) / VOD代金券 (500元)</div>
+                <div class="value" id="resultVodTicket">-</div>
+                
+                <div class="divider"></div>
+                
+                <div class="label">RTC Voucher (500 RMB) / RTC代金券 (500元)</div>
+                <div class="value" id="resultRtcTicket">-</div>
             </div>
 
-            <p class="save-hint">👆 Click to save your account and password / 点击保存账号和密码</p>
+            <p class="save-hint">👆 Please save all information above / 请保存以上所有信息</p>
 
-            <button class="copy-btn" onclick="copyAccount()">Copy Account Info / 复制账户信息</button>
+            <button class="copy-btn" onclick="copyAccount()">Copy All Info / 复制所有信息</button>
 
             <div class="warning">
                 <strong>Important / 重要提示：</strong>Please save your account information. You will not be able to view it again after closing this page.<br>请妥善保存您的账户信息，此页面关闭后将无法再次查看。
             </div>
 
             <div class="info-box">
-                <strong>Next Steps / 下一步：</strong>
-                Enter VOD console to start testing products / 进入VOD控制台开始测试产品：
+                <strong>How to Use / 使用指南：</strong>
                 <br><br>
-                <strong>🎬 Video Editing Models / 视频编辑模型：</strong>
+                <strong>1. Login to Baidu Cloud / 登录百度智能云：</strong>
                 <ul>
-                    <li>Gemini</li>
-                    <li>Veo</li>
-                    <li>Banana</li>
-                    <li>Vidu</li>
-                    <li>Keling</li>
-                    <li>Pixverse</li>
-                    <li>Minimax</li>
+                    <li>Visit / 访问: <a href="https://login.bce.baidu.com/" target="_blank" style="color:#1565c0">https://login.bce.baidu.com/</a></li>
+                    <li>Enter Account ID and Password above / 使用上方账户ID和密码登录</li>
                 </ul>
-                <strong>Discount: 20-50% off / 折扣：5-8折</strong>
+                <br>
+                <strong>2. Activate Vouchers / 激活代金券：</strong>
+                <ul>
+                    <li>Go to Console → Billing → Vouchers / 控制台 → 财务 → 代金券</li>
+                    <li>Enter VOD_ticket and RTC_ticket codes / 输入VOD和RTC代金券码</li>
+                    <li>Each voucher worth 500 RMB / 每张代金券价值500元</li>
+                </ul>
+                <br>
+                <strong>3. Test Products / 测试产品：</strong>
                 <br><br>
-                <strong>🎤 Real-time Voice Interaction / 实时语音交互：</strong>
+                <strong>🎬 VOD - Video Editing Models / 视频编辑模型：</strong>
+                <ul>
+                    <li>Gemini, Veo, Banana, Vidu, Keling, Pixverse, Minimax</li>
+                    <li>Discount: 20-50% off / 折扣：5-8折</li>
+                    <li>Test URL: <a href="https://cloud.baidu.com/product/vod.html" target="_blank" style="color:#1565c0">https://cloud.baidu.com/product/vod.html</a></li>
+                </ul>
+                <br>
+                <strong>🎤 RTC - Real-time Voice Interaction / 实时语音交互：</strong>
                 <ul>
                     <li>Multimodal Interaction / 多模态互动</li>
                     <li>Real-time Communication / 实时交流</li>
+                    <li>Test URL: <a href="https://cloud.baidu.com/product/rtc.html" target="_blank" style="color:#1565c0">https://cloud.baidu.com/product/rtc.html</a></li>
                 </ul>
             </div>
 
-            <a href="https://cloud.baidu.com/product/vod.html" target="_blank" class="start-btn">
-                Start Testing / 开始测试 →
-            </a>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <a href="https://login.bce.baidu.com/" target="_blank" class="start-btn">
+                    Login to Console / 登录控制台 →
+                </a>
+                <a href="https://cloud.baidu.com/product/vod.html" target="_blank" class="start-btn" style="background: #1565c0;">
+                    Test VOD / 测试VOD →
+                </a>
+            </div>
 
             <div class="contact-info">
                 📞 If you have any questions, please contact / 如有疑问请联系：<br>
@@ -572,13 +597,15 @@
             document.getElementById('resultContainer').classList.add('show');
             document.getElementById('resultUsername').textContent = data.username;
             document.getElementById('resultPassword').textContent = data.password;
+            document.getElementById('resultVodTicket').textContent = data.vod_ticket || '-';
+            document.getElementById('resultRtcTicket').textContent = data.rtc_ticket || '-';
         }
 
         // 复制账户信息
         function copyAccount() {
             if (!accountData) return;
             
-            const text = `Username: ${accountData.username}\nPassword: ${accountData.password}`;
+            const text = `Account ID: ${accountData.username}\nPassword: ${accountData.password}\nVOD Voucher: ${accountData.vod_ticket || '-'}\nRTC Voucher: ${accountData.rtc_ticket || '-'}`;
             navigator.clipboard.writeText(text).then(() => {
                 const btn = document.querySelector('.copy-btn');
                 const originalText = btn.textContent;
@@ -588,6 +615,41 @@
                 }, 2000);
             });
         }
+
+        // 检查是否已领取（当姓名和邮箱都填写后）
+        async function checkExistingClaim() {
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!name || !email || !email.includes('@')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/check-claim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.alreadyClaimed) {
+                    // 已领取过，显示已有账户信息
+                    accountData = data.data;
+                    showResult(data.data);
+                    
+                    // 更新提示文字
+                    document.querySelector('.result-title').textContent = 'Welcome Back! / 欢迎回来！';
+                    document.querySelector('.result-subtitle').textContent = 'You have already claimed an account. Your info is below.\n您已经领取过账户，信息如下';
+                }
+            } catch (error) {
+                // 静默失败，不影响用户操作
+                console.log('Check claim failed:', error);
+            }
+        }
+
+        // 监听邮箱输入框失去焦点事件
+        document.getElementById('email').addEventListener('blur', checkExistingClaim);
+        document.getElementById('name').addEventListener('blur', checkExistingClaim);
     </script>
 </body>
 </html>
