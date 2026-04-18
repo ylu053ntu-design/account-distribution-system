@@ -185,6 +185,39 @@
             background: #c0392b;
         }
 
+        .danger-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .danger-btn:hover {
+            background: #c0392b;
+        }
+
+        .action-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .action-bar h3 {
+            color: #333;
+            font-size: 16px;
+        }
+
         .hidden {
             display: none;
         }
@@ -232,6 +265,11 @@
                     <div class="label">Total Claims / 领取人数</div>
                     <div class="value" id="totalClaims">-</div>
                 </div>
+            </div>
+
+            <div class="action-bar">
+                <h3>Operations / 操作</h3>
+                <button class="danger-btn" onclick="clearAllData()">Clear All Data / 清空所有数据</button>
             </div>
 
             <div class="table-container">
@@ -358,6 +396,34 @@
             document.getElementById('adminPanel').classList.add('hidden');
             document.getElementById('loginForm').classList.remove('hidden');
             document.getElementById('adminPassword').value = '';
+        }
+
+        // Clear All Data / 清空所有数据
+        async function clearAllData() {
+            const confirmed = confirm('Are you sure you want to clear ALL data? This cannot be undone.\n确定要清空所有数据吗？此操作不可撤销。');
+            if (!confirmed) return;
+
+            const doubleConfirm = confirm('This will delete all accounts and claim records. Continue?\n这将删除所有账户和领取记录。继续吗？');
+            if (!doubleConfirm) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/clear-claims`, {
+                    method: 'DELETE',
+                    headers: { 'x-admin-password': adminPassword }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('All data cleared successfully!\n所有数据已清空！');
+                    loadStats();
+                    loadClaims();
+                } else {
+                    alert('Failed to clear data: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Failed to clear data. Please check network.\n清空数据失败，请检查网络。');
+            }
         }
 
         // Support Enter key login / 支持回车登录
